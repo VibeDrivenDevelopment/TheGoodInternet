@@ -1,0 +1,10 @@
+version: "3.8"
+
+services:
+  api.thegoodinternet.org:
+    build: .
+    volumes:
+      - ./app/:/usr/src/app/
+    ports:
+      - 8009:8000
+    
