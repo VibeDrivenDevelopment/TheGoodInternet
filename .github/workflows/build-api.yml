@@ -44,14 +44,13 @@ jobs:
       - name: Get next semantic version
         run: |
           next_version=$(semantic-release --noop version --print)
-          echo $next_version
-          echo "$(echo $next_version)" >> "version.txt"
+          echo $next_version >> version.txt
 
       - name: Upload next version
         uses: actions/upload-artifact@v4
         with:
           name: version
-          path: version.txt
+          path: ./api/version.txt
 
 #   build-and-deploy-ghcr:
 #     name: Build Project
