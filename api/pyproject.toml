@@ -15,7 +15,7 @@ version_toml = [
 
 
 [tool.semantic_release.branches.main]
-match = "(main|master)"
+match = "(main|master|feat/add-auth-endpoints)"
 prerelease_token = "rc"
 prerelease = false
 
