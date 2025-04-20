@@ -2,6 +2,7 @@ version: "3.8"
 
 services:
   api.thegoodinternet.org:
+    container_name: api.thegoodinternet.org
     build: .
     volumes:
       - ./app/:/usr/src/app/
