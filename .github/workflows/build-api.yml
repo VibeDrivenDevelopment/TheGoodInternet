@@ -44,6 +44,7 @@ jobs:
       - name: Get next semantic version
         run: |
           next_version=$(semantic-release --noop version --print)
+          echo $next_version
           echo "$(echo $next_version)" >> "version.txt"
 
       - name: Upload next version
