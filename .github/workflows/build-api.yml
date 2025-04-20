@@ -12,7 +12,7 @@ defaults:
 
 jobs:
   test:
-    name: Run test suite
+    name: Run Test Suite
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -25,33 +25,32 @@ jobs:
         id: project_test
         run: docker exec api.thegoodinternet.org python manage.py test
 
-#   version:
-#     name: Determine next semantic version
-#     needs: test
-#     runs-on: ubuntu-latest
-#     steps:
-#       - name: Checkout Code
-#         uses: actions/checkout@v3
-#         with:
-#           fetch-depth: 0
-#           token: ${{ secrets.ADMIN_TOKEN }}
+  version:
+    name: Determine Next Version
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
-#       - name: Setup Python
-#         uses: actions/setup-python@v5
+      - name: Setup Python
+        uses: actions/setup-python@v5
 
-#       - name: Install python-semantic-release
-#         run: python3 -m pip install python-semantic-release
+      - name: Install python-semantic-release
+        run: python3 -m pip install python-semantic-release
 
-#       - name: Get next semantic version
-#         run: |
-#           next_version=$(semantic-release --noop version --print)
-#           echo "$(echo $next_version)" >> "version.txt"
+      - name: Get next semantic version
+        run: |
+          next_version=$(semantic-release --noop version --print)
+          echo "$(echo $next_version)" >> "version.txt"
 
-#       - name: Upload next version
-#         uses: actions/upload-artifact@v4
-#         with:
-#           name: version
-#           path: version.txt
+      - name: Upload next version
+        uses: actions/upload-artifact@v4
+        with:
+          name: version
+          path: version.txt
 
 #   build-and-deploy-ghcr:
 #     name: Build Project
