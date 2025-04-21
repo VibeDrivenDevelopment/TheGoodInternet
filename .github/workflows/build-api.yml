@@ -93,13 +93,14 @@ jobs:
       - name: Build image and push to Github Container Registry
         uses: docker/build-push-action@v3
         with:
-          context: ./app
-          file: ./app/Dockerfile.prod
+          platforms: linux/amd64,linux/arm64
+          context: ./api
+          file: ./api/Dockerfile
           push: true
           build-args: 'CURRENT_VERSION=${{env.VERSION}}'
           tags: |
-            ghcr.io/vibedrivendevelopment/api.thegoodinternet.org:latest
-            ghcr.io/vibedrivendevelopment/api.thegoodinternet.org:${{env.VERSION}}
+            ghcr.io/vibedrivendevelopment/api-thegoodinternet:latest
+            ghcr.io/vibedrivendevelopment/api-thegoodinternet:${{env.VERSION}}
           secrets: |
             SEMANTIC_VERSION=v${{env.VERSION}}
 
