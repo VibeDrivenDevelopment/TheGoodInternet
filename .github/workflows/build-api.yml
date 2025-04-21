@@ -76,7 +76,10 @@ jobs:
 
       - name: Set version environment variable
         run: |
+          cat version.txt
+          cat ../version.txt
           echo "VERSION=$(cat version.txt)" >> $GITHUB_ENV
+          echo $VERSION
 
       - name: Sanity Check
         run: |
