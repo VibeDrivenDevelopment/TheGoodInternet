@@ -1,0 +1,170 @@
+name: Test, Build, and Publish API Container
+on:
+  push:
+    branches:
+      - main
+      - feat/add-auth-endpoints
+
+defaults:
+    run:
+        working-directory: './api'
+
+
+jobs:
+  test:
+    name: Run Test Suite
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Build docker images
+        run: docker compose up -d --build
+
+      - name: Test Project
+        id: project_test
+        run: docker exec api.thegoodinternet.org python manage.py test
+
+  version:
+    name: Determine Next Version
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+
+      - name: Install python-semantic-release
+        run: python3 -m pip install python-semantic-release
+
+      - name: Get next semantic version
+        run: |
+          next_version=$(semantic-release --noop version --print)
+          echo $next_version >> version.txt
+
+      - name: Upload next version
+        uses: actions/upload-artifact@v4
+        with:
+          name: version
+          path: ./api/version.txt
+
+  deploy-image-to-ghcr:
+    name: Deploy To GHCR
+    runs-on: ubuntu-latest
+    needs: version
+    steps:
+      - name: Generate a token
+        id: generate-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ vars.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
+      - name: Checkout Code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Grab next version
+        uses: actions/download-artifact@v4
+        with:
+          name: version
+
+      - name: Set version environment variable
+        run: |
+          cat ../version.txt
+          echo "VERSION=$(cat ../version.txt)" >> $GITHUB_ENV
+          echo $VERSION
+
+      - name: Sanity Check
+        run: |
+          echo $VERSION && sleep 2
+          echo "env version ${{env.VERSION}}" && sleep 2
+
+      - name: Login to Github Packages
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build image and push to Github Container Registry
+        uses: docker/build-push-action@v3
+        with:
+          platforms: linux/amd64,linux/arm64
+          context: ./api
+          file: ./api/Dockerfile
+          push: true
+          build-args: 'CURRENT_VERSION=${{env.VERSION}}'
+          tags: |
+            ghcr.io/vibedrivendevelopment/api-thegoodinternet:latest
+            ghcr.io/vibedrivendevelopment/api-thegoodinternet:${{env.VERSION}}
+          secrets: |
+            SEMANTIC_VERSION=v${{env.VERSION}}
+
+#   generate-semantic-release:
+#     name: Publish a new semantic version of this project.
+#     runs-on: ubuntu-latest
+#     needs: [build-and-deploy-ghcr, build-and-deploy-azure]
+
+#     steps:
+#       - name: Checkout Code
+#         uses: actions/checkout@v3
+#         with:
+#           fetch-depth: 0
+#           token: ${{ secrets.ADMIN_TOKEN }}
+
+#       - name: Python Semantic Release
+#         uses: python-semantic-release/python-semantic-release@master
+#         with:
+#           github_token: ${{ secrets.ADMIN_TOKEN }}
+#   deploy:
+#     name: Deploy API
+#     runs-on: ubuntu-latest
+#     needs: [build-and-deploy-ghcr, build-and-deploy-azure]
+
+#     steps:
+#       - name: Checkout code
+#         uses: actions/checkout@v3
+
+#       - name: Copy shutdown script and prepare for new version
+#         uses: appleboy/scp-action@v0.1.7
+#         with:
+#           host: ${{ secrets.STAGING_SERVER_URL }}
+#           username: ${{ secrets.SSH_USERNAME }}
+#           password: ${{ secrets.SSH_PASSWORD }}
+#           port: 22
+#           source: ".ci/staging/shutdown-staging.sh"
+#           target: /home/cierra/api/
+#           strip_components: 2
+
+#       - name: Copy deploy script and new docker compose
+#         uses: appleboy/scp-action@v0.1.7
+#         with:
+#           host: ${{ secrets.STAGING_SERVER_URL }}
+#           username: ${{ secrets.SSH_USERNAME }}
+#           password: ${{ secrets.SSH_PASSWORD }}
+#           port: 22
+#           source: ".ci/staging/deploy-staging.sh,.ci/staging/docker-compose.yml"
+#           target: /home/cierra/api/
+#           strip_components: 2
+
+#       - name: Check That Deploy Script Exists
+#         uses: appleboy/ssh-action@v1.0.3
+#         with:
+#           host: ${{ secrets.STAGING_SERVER_URL }}
+#           username: ${{ secrets.SSH_USERNAME }}
+#           password: ${{ secrets.SSH_PASSWORD }}
+#           port: 22
+#           script: source /home/cierra/api/deploy-staging.sh
